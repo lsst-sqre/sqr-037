@@ -602,7 +602,7 @@ Internet-Accessible Services
 Many SQuaRE services are Internet-accessible by design and do not require a VPN.
 This avoids the need to run a VPN infrastructure, makes it easier for SQuaRE staff to do their job from any location, and avoids network disruptions and other problems from VPN difficulties.
 Requiring VPN would allow SQuaRE to reduce the attack surface of SQuaRE infrastructure by restricting it to VPN IP addresses, but some services (such as those in support of the LSP) would still need to be Internet-accessible.
-VPN does not protect against stolen laptops, only against Internet mass scanning.
+VPN does not protect against compromised work computers, only against Internet mass scanning.
 
 Internet-accessible services greatly ease technical collaborations between systems at the summit, the LDF, the test stands, and various cloud services.
 That in turn increases project development velocity at this critical construction phase of the project.
