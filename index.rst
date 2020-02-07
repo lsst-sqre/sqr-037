@@ -14,7 +14,7 @@
 Scope
 =====
 
-This security risk assessment covers SQuaRE staff members and general infrastructure services internal to the project.
+This security risk assessment covers SQuaRE general infrastructure services internal to the project and the technical practices of SQuaRE staff.
 It does not cover the :abbr:`LSP (LSST Science Platform)` or public-facing science APIs for LSST data.
 These pose different concerns due to their much broader access and usage, and will be covered in a future tech note.
 That said, many of the same principles are expected to apply to a later evaluation of the LSP and public APIs.
@@ -53,7 +53,7 @@ Threat Model
 Targets
 -------
 
-Expected attacker targets for SQuaRE staff members and services are primarily the standard targets of opportunity for general Internet attackers:
+Expected attacker targets for SQuaRE services and practices are primarily the standard targets of opportunity for general Internet attackers:
 
 - Theft of compute resources (Bitcoin mining, bot networks)
 - Extortion via ransomware (CryptoLocker)
