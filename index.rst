@@ -550,7 +550,7 @@ Recommendations
 - Enable two-factor authentication for all Google accounts with GCP access.
   Also see :ref:`Google Authentication <gap-google-auth>`.
 - Enable two-factor authentication for all Docker Hub accounts with access to the ``lsstsqre`` project.
-- Consider acquiring YubiKey or other WebAuthn devices for all SQuaRE team members and requiring its use for cloud services that support it (GitHub, AWS, and Google).
+- Consider acquiring YubiKey or other WebAuthn devices for all SQuaRE team members and requiring their use for cloud services that support it (GitHub, AWS, and Google).
 
 .. _gap-google-auth:
 
