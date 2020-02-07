@@ -40,8 +40,8 @@ The top recommendations for improving SQuaRE's security posture are:
 
 This review is preliminary and is expected to expand as more information is gathered.
 
-See :ref:`accepted-risks` for discussion of apparent security risks that should not be a focus of time or resources.
-See :ref:`glossary` for some possibly-unfamiliar security terms.
+See :ref:`Accepted Risks <accepted-risks>` for discussion of apparent security risks that should not be a focus of time or resources.
+See :ref:`Glossary <glossary>` for some possibly-unfamiliar security terms.
 
 .. _threat-model:
 
@@ -131,10 +131,10 @@ This threat model is based on the following assumptions about project security r
   Detection and response will be done by general project staff in the course of normal service operations.
 - The project does not have resources for a dedicated red team (offensive security testing), and at best limited resources for penetration testing.
 - Centralized security management of endpoints (laptops, desktops, and mobile devices for project staff) is cost-prohibitive in both distributed and centralized costs and contrary to the culture and work style of the project.
-  This is discussed further in :ref:`gaps-personal-devices`.
+  This is discussed further in :ref:`Personal Devices <gaps-personal-devices>`.
 
 This rules out effective defense against state actors, sophisticated organized crime, or insider threats.
-Thankfully, as explained in :ref:`threat-model-targets`, it is also unlikely that such attackers would spend resources attempting to compromise SQuaRE services given the lack of (to them) interesting targets.
+Thankfully, as explained in :ref:`Threat Model: Targets <threat-model-targets>`, it is also unlikely that such attackers would spend resources attempting to compromise SQuaRE services given the lack of (to them) interesting targets.
 
 .. _gaps:
 
@@ -548,7 +548,7 @@ Recommendations
 - Set an AWS IAM policy to disallow all service access unless two-factor authentication was used, and attach that policy to all IAM users.
   This effectively requires all users in an account to use two-factor authentication.
 - Enable two-factor authentication for all Google accounts with GCP access.
-  Also see :ref:`gap-google-auth`.
+  Also see :ref:`Google Authentication <gap-google-auth>`.
 - Enable two-factor authentication for all Docker Hub accounts with access to the ``lsstsqre`` project.
 - Consider acquiring YubiKey or other WebAuthn devices for all SQuaRE team members and requiring its use for cloud services that support it (GitHub, AWS, and Google).
 
