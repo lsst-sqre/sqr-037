@@ -76,7 +76,7 @@ SQuaRE should expect attacks from, and defend against:
 
 - Viruses, worms, and other automatically-spreading attacks
 - Phishing via mass spam or unsophisticated spear-phishing
-- Unsophisticated mining of stolen personal devices for credentials
+- Unsophisticated scanning of stolen personal devices for credentials
 - Automated exploits based on mass scanning and opportunistic exploitation
 - Targeted attacks by people with off-the-shelf exploit toolkits
 
