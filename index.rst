@@ -193,7 +193,7 @@ This is also the most likely attack vector for both opportunistic mass scanning 
 Most (although not all) SQuaRE deployments are done via Kubernetes, which reduces the risk of local compromise of a service since the attacker will be confined to the container and the security of the container host is handled by the hosting facility (such as :abbr:`GCP (Google Cloud Platform)`).
 However, an attacker would still be able to intercept traffic, attack internal services and backend storage, and steal security credentials and sensitive data traveling through the compromised host.
 
-This in turn requires regular patching of all software that is part of a plausible attack path.
+Therefore, all software that is part of a plausible attack path should be regular patched for security vulnerabilities.
 Since attack path analysis is difficult, costly, and error-prone, and since it is difficult to determine if a given upgrade has security implications, best practice is to routinely upgrade all software to the latest stable release.
 
 Software upgrades are currently done opportunistically or as a side effect of other operational work, which means that stable services that don't need new features may be left unpatched for extended periods of time.
