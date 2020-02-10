@@ -194,7 +194,13 @@ Most (although not all) SQuaRE deployments are done via Kubernetes, which reduce
 However, an attacker would still be able to intercept traffic, attack internal services and backend storage, and steal security credentials and sensitive data traveling through the compromised host.
 
 Therefore, all software that is part of a plausible attack path should be regular patched for security vulnerabilities.
-Since attack path analysis is difficult, costly, and error-prone, and since it is difficult to determine if a given upgrade has security implications, best practice is to routinely upgrade all software to the latest stable release.
+The SQuaRE services in this analysis don't have large quantities of locally-developed code or complex, multi-layered dependencies that are difficult to upgrade.
+Therefore, since attack path analysis is difficult, costly, and error-prone, and since it is difficult to determine if a given upgrade has security implications, best practice is to routinely upgrade all software to the latest stable release.
+This is most important for compiled binaries in non-memory-safe languages that are part of the external attack surface (such as nginx or Python Docker images).
+It is less critical for underlying libraries in memory-safe languages, such as Python libraries.
+
+This analysis would not apply to the :abbr:`LSP (LSST Science Platform)` or to public APIs, for which regular upgrades are more disruptive and for which the security model is more complex.
+The differences will be addressed in a later security analysis specific to the LSP and public APIs.
 
 Software upgrades are currently done opportunistically or as a side effect of other operational work, which means that stable services that don't need new features may be left unpatched for extended periods of time.
 For instance, were there a new nginx security vulnerability, it currently seems unlikely that all Internet-facing nginx installations would be patched in a timely fashion without heroic efforts.
@@ -228,9 +234,8 @@ Recommendations
 - Monitor and alert on failure to upgrade any of the above services within an acceptable window.
 - Clear all security issues in the GitHub security report, which reports vulnerabilities in dependencies declared in project GitHub repositories.
   If this is kept clear so that it isn't dismissed as noise, it provides a valuable feed of new vulnerability information in libraries used by SQuaRE services.
-- Avoid pinning to specific versions of third-party libraries and images when possible and instead use the latest version on each deploy.
-  This is riskier for library dependencies, but generally doable for Docker images.
-- Rebuild and redeploy all services, even those that are not Internet-facing, to pick up security patches.
+- Avoid pinning Docker images and other components in compiled, non-memory-safe languages to specific versions of third-party libraries and images when possible and instead use the latest version on each deploy.
+- Upgrade dependencies, rebuild, and redeploy all services, even those that are not Internet-facing, on a regular schedule to pick up security patches.
   This is less important than Internet-facing services, but will close vulnerabilities that are indirectly exploitable, and also spreads operational load of upgrades out over time.
   This schedule can be less aggressive than the one for Internet-facing services.
 
