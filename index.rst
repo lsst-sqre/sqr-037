@@ -2,12 +2,13 @@
 
 .. sectnum::
 
-.. note::
+.. _abstract:
 
-   **This technote is not yet published.**
+Abstract
+========
 
-   SQuaRE runs project infrastructure and multiple security-sensitive services, and SQuaRE team members have substantial access permissions.
-   This tech note proposes a threat model for analyzing SQuaRE-related security risks (excluding the LSP and public APIs), catalogs known gaps under that threat model, and recommends mitigations for those gaps.
+SQuaRE runs project infrastructure and multiple security-sensitive services, and SQuaRE team members have substantial access permissions.
+This tech note proposes a threat model for analyzing SQuaRE-related security risks (excluding the LSP and public APIs), catalogs known gaps under that threat model, and recommends mitigations for those gaps.
 
 .. _scope:
 
