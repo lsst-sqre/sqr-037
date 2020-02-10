@@ -76,18 +76,18 @@ SQuaRE should expect attacks from, and defend against:
 
 - Viruses, worms, and other automatically-spreading attacks
 - Phishing via mass spam or unsophisticated spear-phishing
-- Unsophisticated scanning of stolen personal devices for credentials
+- Unsophisticated scanning of stolen endpoints for credentials
 - Automated exploits based on mass scanning and opportunistic exploitation
 - Targeted attacks by people with off-the-shelf exploit toolkits
 
 The most likely attack pattern is mass scanning of all Internet-facing resources for known flaws, followed by automated or toolkit-based manual follow-up on discovered flaws.
 The second most likely attack pattern is interactive exploration of public-facing web sites and resources looking for software and web security vulnerabilities with known exploits.
-It is distantly possible that a personal device stolen from a SQuaRE employee might be scanned for useful credentials before being wiped and reused.
+It is distantly possible that an endpoint stolen from a SQuaRE employee might be scanned for useful credentials before being wiped and reused.
 
-SQuaRE should therefore focus security efforts on patching known security vulnerabilities, avoiding obvious web security problems, taking reasonable precautions with personal devices, and detecting obvious attacker activity.
+SQuaRE should therefore focus security efforts on patching known security vulnerabilities, avoiding obvious web security problems, taking reasonable precautions with endpoints, and detecting obvious attacker activity.
 
 SQuaRE should not attempt to defend against :abbr:`APTs (Advanced Persistent Threats)`, state actors, or sophisticated organized crime.
-Therefore, SQuaRE should not attempt to defend against attackers with the capability to develop or purchase unknown zero-day exploits, construct novel exploit toolkits, implant hardware into personal devices, or pursue careful and sophisticated targeted phishing attacks.
+Therefore, SQuaRE should not attempt to defend against attackers with the capability to develop or purchase unknown zero-day exploits, construct novel exploit toolkits, implant hardware into endpoints, or pursue careful and sophisticated targeted phishing attacks.
 Defense against this level of attacker would not be a good use of project resources given the extremely high cost of defense and the relatively low likelihood of interest in SQuaRE services by well-funded attackers.
 
 SQuaRE should also not attempt to implement technical defenses against insider attacks.
@@ -131,7 +131,7 @@ This threat model is based on the following assumptions about project security r
   Detection and response will be done by general project staff in the course of normal service operations.
 - The project does not have resources for a dedicated red team (offensive security testing), and at best limited resources for penetration testing.
 - Centralized security management of endpoints (laptops, desktops, and mobile devices for project staff) is cost-prohibitive in both distributed and centralized costs and contrary to the culture and work style of the project.
-  This is discussed further in :ref:`Personal Devices <gaps-personal-devices>`.
+  This is discussed further in :ref:`Endpoints <gaps-endpoints>`.
 
 This rules out effective defense against state actors, sophisticated organized crime, or insider threats.
 Thankfully, as explained in :ref:`Threat Model: Targets <threat-model-targets>`, it is also unlikely that such attackers would spend resources attempting to compromise SQuaRE services given the lack of (to them) interesting targets.
@@ -165,7 +165,7 @@ Summary
    +------------------+------------------------------+--------+
    | Data Stores      | :ref:`gap-sql-public-ip`     | Low    |
    +------------------+------------------------------+--------+
-   | Personal Devices | :ref:`gap-laptop-compromise` | Medium |
+   | Endpoints        | :ref:`gap-laptop-compromise` | Medium |
    |                  +------------------------------+--------+
    |                  | :ref:`gap-laptop-theft`      | Low    |
    +------------------+------------------------------+--------+
@@ -413,12 +413,12 @@ Recommendations
   Most data stores only need to be accessed from the corresponding service running in the same cloud environment, making public IP access unnecessary.
   In the rare instance that direct administrative access to the database is required, this can be done via Kubernetes port forwarding.
 
-.. _gaps-personal-devices:
+.. _gaps-endpoints:
 
-Personal Devices
-----------------
+Endpoints
+---------
 
-SQuaRE staff do most work from personal laptops and desktops.
+SQuaRE staff do most work directly from work laptops and desktops, collectively referred to here as "endpoints."
 In the course of that work, they create and store security tokens with administrative access to SQuaRE services and systems.
 These include:
 
@@ -469,7 +469,7 @@ Recommendations
 SQuaRE does not have the resources available to do central device management well, and therefore should not attempt device management at all.
 Instead, SQuaRE should focus on recommending caution in how staff use their work computers, and on reducing the impact of a compromise.
 
-- SQuaRE staff should avoid using work computers for testing unknown applications or visiting suspicious web sites, instead using mobile devices (preferred) or personal devices without access to work credentials.
+- SQuaRE staff should avoid using work computers for testing unknown applications or visiting suspicious web sites, instead using mobile devices (preferred) or non-work devices without access to work credentials.
 - SQuaRE staff should be vigilant about phishing, particularly when using a work computer.
 
   - Do not click on links or attachments in suspicious messages.
@@ -663,6 +663,12 @@ APT
     These attacks are narrowly targeted at a specific site and often involve significant research and analysis of the security practices of the target.
     They prioritize avoiding detection, in contrast to the more typical "smash and grab" attacks of less sophisticated attackers.
     An APT is a sign of well-funded attackers, either large-scale organized crime or **state actors**.
+
+endpoint
+    The device with a screen and keyboard into which one is directly typing.
+    A collective term for work laptops, desktops, personal laptops and desktops, mobile devices, and any other end-user device with screen and keyboard used in the course of project work.
+    An attacker with full access to an endpoint has full access to anything accessed from that endpoint, can steal authentication credentials, and can impersonate the user of that device or piggyback on their authenticated connections.
+    Security of endpoints is therefore critical to the security of any overall system.
 
 insider threat
     An attack by a trusted member of the organization being attacked.
