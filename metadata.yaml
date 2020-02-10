@@ -37,14 +37,19 @@ authors:
 copyright: "2020, Association of Universities for Research in Astronomy, Inc. (AURA)"
 
 # Description. A short, 1-2 sentence statemement used by document indices.
-description: "SQuaRE runs project infrastructure and multiple security-sensitive services, and SQuaRE team members have substantial access permissions. This tech note proposes a threat model for analyzing SQuaRE-related security risks, catalogs known gaps under that threat model, and recommends mitigations for those gaps."
+description: >-
+  A threat model, catalog of known security gaps, and recommended
+  mitigations for SQuaRE-related security risks, excluding the LSP and
+  public APIs.
 
 # Abstract, if available
-# abstract: >
-#           Write your paragraph
-#           here with multiple lines.
-#
-#           You can have multiple paragraphs too.
+abstract: >-
+  SQuaRE runs project infrastructure and multiple security-sensitive
+  services, and SQuaRE team members have substantial access
+  permissions. This tech note proposes a threat model for analyzing
+  SQuaRE-related security risks (excluding the LSP and public APIs),
+  catalogs known gaps under that threat model, and recommends mitigations
+  for those gaps.
 
 # URL where this document is published by Read the Docs. e.g. http://sqr-001.lsst.codes
 url: "https://sqr-037.lsst.io"
