@@ -13,7 +13,7 @@ serial_number: "037"
 doc_id: "SQR-037"
 
 # Title of the document, without the series/serial designation
-doc_title: "SQuaRE Security Risk Assessment"
+doc_title: "SQuaRE security risk assessment"
 
 # Author names, ordered as a list. Each author name should be formatted as 'First Last'
 authors:
