@@ -29,17 +29,19 @@ Summary
 SQuaRE should focus security efforts on closing known vulnerabilities and defending against attackers doing mass vulnerability scans or using off-the-shelf exploit toolkits.
 Within that framework, the security gaps that pose the highest risk are:
 
-- :ref:`Security patching and upgrades of application and infrastructure <gap-patching>`
+- :ref:`Kubernetes hardening <gap-kubernetes>`
 - :ref:`Security logging and alerting <gap-logging-alerting>`
 
 The top recommendations for improving SQuaRE's security posture are:
 
-- Automate or regularly schedule patching and upgrades of critical services
+- Create a Google Cloud Identity domain with mandatory two-factor authentication for access to SQuaRE services running at Google
+- Apply all of the Kubernetes cluster hardening measures recommended by Google
+- Research and apply Kubernetes best practices for service configuration
 - Consolidate application hosting environments
 - Ingest security logs from cloud hosting providers
 - Define normal administrative activity and begin alerting on unexpected privileged actions
 - Require two-factor authentication for administrative access to cloud hosting providers
-- Create a Google Cloud Identity domain with mandatory two-factor authentication for access to SQuaRE services running at Google
+- Automate or regularly schedule patching and upgrades of SQuaRE services
 
 See :ref:`Accepted Risks <accepted-risks>` for discussion of apparent security risks that should not be a focus of time or resources.
 See :ref:`Glossary <glossary>` for some possibly-unfamiliar security terms.
@@ -152,9 +154,11 @@ Summary
    +------------------+------------------------------+--------+
    | Class            | Gap                          | Risk   |
    +==================+==============================+========+
-   | Infrastructure   | :ref:`gap-patching`          | High   |
+   | Infrastructure   | :ref:`gap-kubernetes`        | High   |
    |                  +------------------------------+--------+
    |                  | :ref:`gap-logging-alerting`  | High   |
+   |                  +------------------------------+--------+
+   |                  | :ref:`gap-patching`          | Medium |
    |                  +------------------------------+--------+
    |                  | :ref:`gap-scattered`         | Medium |
    |                  +------------------------------+--------+
@@ -180,12 +184,84 @@ Summary
 Infrastructure services
 -----------------------
 
+.. _gap-kubernetes:
+
+Kubernetes hardening
+^^^^^^^^^^^^^^^^^^^^
+
+**Risk: High**
+
+Currently, SQuaRE has not done much to harden Kubernetes deployments outside of what upstream Helm charts and :abbr:`GKE (Google Kubernetes Engine)` does by default.
+This increases the risk that a compromised container will lead to a deeper infrastructure compromise.
+The SQuaRE Kubernetes clusters on GKE have their nodes and control plane accessible from the Internet, which is convenient for management but which significantly increases the attack surface.
+Traffic between pods is unrestricted, increasing the chances of lateral movement inside each cluster.
+The current cluster configurations do not follow the `Google recommended security practices <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__.
+
+Mitigations
+"""""""""""
+
+- All SQuaRE internal clusters (setting aside the Rubin Science Platform, which is not covered in this document) are hosted on GKE using Container-Optimized OS, so benefit from the cluster and node hardening that Google does by default.
+- All SQuaRE internal clusters are enrolled in release channels and are therefore automatically upgraded for Kubernetes security vulnerabilities.
+
+Recommendations
+"""""""""""""""
+
+Most of these recommendations come from the Google recommended hardening practices.
+
+- Create a Google Cloud Identity organization and restrict access to members of that organization.
+  This will enable access to the Google Security Command Center to monitor the security configuration of the Kubernetes clusters.
+  See :ref:`Google authentication <gap-google-auth>`.
+- Enable shielded GKE nodes with secure boot.
+- Use the ``cos_containerd`` image for all node pools.
+- Enable Workload Identity and ensure all services with Kubernetes credentials work properly with it.
+- Restrict cluster discovery permissions to only service accounts plus the Google Cloud Identity organization.
+- Restrict traffic between pods.
+  Istio is the most comprehensive solution here, but Kubernetes network policies may be sufficient.
+- Add admission controllers to enforce pod security policies.
+- Restrict network access to the control plane and nodes.
+  This is challenging because the recommended way to do this is to use a VPN to link the Kubernetes network with a corporate network, which poses various challenges.
+  However, exposing the cluster to the Internet is a significant increase in attack surface and therefore risk.
+- Research Kubernetes best practices for service configuration and adopt them for all SQuaRE internal services.
+- Add periodic scanning of SQuaRE Kubernetes clusters for missing security best practices.
+
+See `Google's hardening recommendations <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__ for more details.
+Also see :ref:`Service account permissions <gap-service-perms>`.
+
+.. _gap-logging-alerting:
+
+Logging and alerting
+^^^^^^^^^^^^^^^^^^^^
+
+**Risk: High**
+
+Logs of privileged actions and unusual events are vital for security incident response, root cause analysis, recovery after an incident, and alerting for suspicious events.
+SQuaRE has only partly consolidated them into a single system, and does not yet have alerts on unexpected activity.
+
+Ideally, all application and infrastructure logs would be consolidated into a single searchable log store.
+The most vital logs to centralize and make available for alerting are administrative actions, such as manual Argo CD, Helm, and Kubernetes actions by cluster administrators, and security logs from cloud hosting platforms.
+The next most important target is application logs from security-sensitive applications, such as Vault audit logs and Argo CD logs.
+
+Currently, logs are being ingested by Fluentd from qserv and Kubernetes pods in the LDF prod and int environments and in Roundtable.
+The Roundtable instance is not yet available without port forwarding pending an authentication and authorization strategy.
+Logs from other Kubernetes clusters are not yet ingested.
+
+Recommendations
+"""""""""""""""
+
+- Ingest logs from all hosting environments.
+  The best way to do this may be to consolidate environments into Roundtable and the LDF.
+- Make the ELK cluster for Roundtable more accessible and thus easier to use.
+- Ingest AWS and GCP security logs from their native services into this framework.
+- Write alerts for unexpected administrative actions and other signs of compromise.
+  One possible alerting strategy is to route unexpected events to a Slack bot that will query the person who supposedly took that action for confirmation that they indeed took that action, with two-factor authentication confirmation.
+  If this is done only for discouraged paths for admin actions, such as direct Kubernetes commands instead of using Argo CD, it doubles as encouragement to use the standard configuration management system.
+
 .. _gap-patching:
 
 Security patching
 ^^^^^^^^^^^^^^^^^
 
-**Risk: High**
+**Risk: Medium**
 
 Due to the use of cloud services and distributed data centers, many SQuaRE services are Internet-accessible by design.
 This means there is a substantial Internet-facing attack surface, which increases the risk of vulnerabilities in software used for SQuaRE services.
@@ -239,35 +315,6 @@ Recommendations
 - Upgrade dependencies, rebuild, and redeploy all services, even those that are not Internet-facing, on a regular schedule to pick up security patches.
   This is less important than Internet-facing services, but will close vulnerabilities that are indirectly exploitable, and also spreads operational load of upgrades out over time.
   This schedule can be less aggressive than the one for Internet-facing services.
-
-.. _gap-logging-alerting:
-
-Logging and alerting
-^^^^^^^^^^^^^^^^^^^^
-
-**Risk: High**
-
-Logs of privileged actions and unusual events are vital for security incident response, root cause analysis, recovery after an incident, and alerting for suspicious events.
-SQuaRE has only partly consolidated them into a single system, and does not yet have alerts on unexpected activity.
-
-Ideally, all application and infrastructure logs would be consolidated into a single searchable log store.
-The most vital logs to centralize and make available for alerting are administrative actions, such as manual Argo CD, Helm, and Kubernetes actions by cluster administrators, and security logs from cloud hosting platforms.
-The next most important target is application logs from security-sensitive applications, such as Vault audit logs and Argo CD logs.
-
-Currently, logs are being ingested by Fluentd from qserv and Kubernetes pods in the LDF prod and int environments and in Roundtable.
-The Roundtable instance is not yet available without port forwarding pending an authentication and authorization strategy.
-Logs from other Kubernetes clusters are not yet ingested.
-
-Recommendations
-"""""""""""""""
-
-- Ingest logs from all hosting environments.
-  The best way to do this may be to consolidate environments into Roundtable and the LDF.
-- Make the ELK cluster for Roundtable more accessible and thus easier to use.
-- Ingest AWS and GCP security logs from their native services into this framework.
-- Write alerts for unexpected administrative actions and other signs of compromise.
-  One possible alerting strategy is to route unexpected events to a Slack bot that will query the person who supposedly took that action for confirmation that they indeed took that action, with two-factor authentication confirmation.
-  If this is done only for discouraged paths for admin actions, such as direct Kubernetes commands instead of using Argo CD, it doubles as encouragement to use the standard configuration management system.
 
 .. _gap-scattered:
 
@@ -733,7 +780,7 @@ XSS
 Changes
 =======
 
-2020-08-18
+2020-08-19
 ----------
 
 - Add shared accounts to the analysis in :ref:`Two-factor authentication <gap-two-factor>`.
@@ -742,3 +789,4 @@ Changes
 - Raise the risk of :ref:`Google authentication <gap-google-auth>` to medium due to our heavily reliance on Google services.
 - Add Google Cloud Identity to the top recommendations.
 - Update analysis, mitigations, and recommendations for the work that was done on :ref:`Security patching <gap-patching>`.
+- Add :ref:`Kubernetes hardening <gap-kubernetes>` and mark it as one of the highest risk areas.
