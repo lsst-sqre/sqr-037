@@ -39,7 +39,7 @@ copyright: "2020, Association of Universities for Research in Astronomy, Inc. (A
 # Description. A short, 1-2 sentence statemement used by document indices.
 description: >-
   A threat model, catalog of known security gaps, and recommended
-  mitigations for SQuaRE-related security risks, excluding the LSP and
+  mitigations for SQuaRE-related security risks, excluding the RSP and
   public APIs.
 
 # Abstract, if available
@@ -47,7 +47,7 @@ abstract: >-
   SQuaRE runs project infrastructure and multiple security-sensitive
   services, and SQuaRE team members have substantial access
   permissions. This tech note proposes a threat model for analyzing
-  SQuaRE-related security risks (excluding the LSP and public APIs),
+  SQuaRE-related security risks (excluding the RSP and public APIs),
   catalogs known gaps under that threat model, and recommends mitigations
   for those gaps.
 

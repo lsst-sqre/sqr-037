@@ -8,7 +8,7 @@ Abstract
 ========
 
 SQuaRE runs project infrastructure and multiple security-sensitive services, and SQuaRE team members have substantial access permissions.
-This tech note proposes a threat model for analyzing SQuaRE-related security risks (excluding the LSP and public APIs), catalogs known gaps under that threat model, and recommends mitigations for those gaps.
+This tech note proposes a threat model for analyzing SQuaRE-related security risks (excluding the RSP and public APIs), catalogs known gaps under that threat model, and recommends mitigations for those gaps.
 
 .. _scope:
 
@@ -16,9 +16,10 @@ Scope
 =====
 
 This security risk assessment covers SQuaRE general infrastructure services internal to the project and the technical practices of SQuaRE staff.
-It does not cover the :abbr:`LSP (LSST Science Platform)` or public-facing science APIs for LSST data.
-These pose different concerns due to their much broader access and usage, and will be covered in a future tech note.
-That said, many of the same principles are expected to apply to a later evaluation of the LSP and public APIs.
+It does not cover the Rubin Science Platform (RSP) or public-facing science APIs for LSST data.
+For the corresponding review of the RSP, see `SQR-041`_.
+
+.. _SQR-041: https://sqr-041.lsst.io/
 
 .. _summary:
 
@@ -28,25 +29,26 @@ Summary
 SQuaRE should focus security efforts on closing known vulnerabilities and defending against attackers doing mass vulnerability scans or using off-the-shelf exploit toolkits.
 Within that framework, the security gaps that pose the highest risk are:
 
-- :ref:`Security patching and upgrades of application and infrastructure <gap-patching>`
+- :ref:`Kubernetes hardening <gap-kubernetes>`
 - :ref:`Security logging and alerting <gap-logging-alerting>`
 
 The top recommendations for improving SQuaRE's security posture are:
 
-- Automate or regularly schedule patching and upgrades of critical services
+- Create a Google Cloud Identity domain with mandatory two-factor authentication for access to SQuaRE services running at Google
+- Apply all of the Kubernetes cluster hardening measures recommended by Google
+- Research and apply Kubernetes best practices for service configuration
 - Consolidate application hosting environments
 - Ingest security logs from cloud hosting providers
 - Define normal administrative activity and begin alerting on unexpected privileged actions
 - Require two-factor authentication for administrative access to cloud hosting providers
-
-This review is preliminary and is expected to expand as more information is gathered.
+- Automate or regularly schedule patching and upgrades of SQuaRE services
 
 See :ref:`Accepted Risks <accepted-risks>` for discussion of apparent security risks that should not be a focus of time or resources.
 See :ref:`Glossary <glossary>` for some possibly-unfamiliar security terms.
 
 .. _threat-model:
 
-Threat Model
+Threat model
 ============
 
 .. _threat-model-targets:
@@ -70,7 +72,7 @@ Therefore, targeted attacks by sophisticated attackers looking for data of monet
 
 .. _threat-model-attackers:
 
-Attacker Profile
+Attacker profile
 ----------------
 
 SQuaRE should expect attacks from, and defend against:
@@ -139,7 +141,7 @@ Thankfully, as explained in :ref:`Threat Model: Targets <threat-model-targets>`,
 
 .. _gaps:
 
-Known Gaps
+Known gaps
 ==========
 
 Summary
@@ -152,9 +154,11 @@ Summary
    +------------------+------------------------------+--------+
    | Class            | Gap                          | Risk   |
    +==================+==============================+========+
-   | Infrastructure   | :ref:`gap-patching`          | High   |
+   | Infrastructure   | :ref:`gap-kubernetes`        | High   |
    |                  +------------------------------+--------+
    |                  | :ref:`gap-logging-alerting`  | High   |
+   |                  +------------------------------+--------+
+   |                  | :ref:`gap-patching`          | Medium |
    |                  +------------------------------+--------+
    |                  | :ref:`gap-scattered`         | Medium |
    |                  +------------------------------+--------+
@@ -172,77 +176,60 @@ Summary
    +------------------+------------------------------+--------+
    | Authentication   | :ref:`gap-two-factor`        | Medium |
    |                  +------------------------------+--------+
-   |                  | :ref:`gap-google-auth`       | Low    |
+   |                  | :ref:`gap-google-auth`       | Medium |
    +------------------+------------------------------+--------+
 
 .. _gaps-infra:
 
-Infrastructure Services
+Infrastructure services
 -----------------------
 
-.. _gap-patching:
+.. _gap-kubernetes:
 
-Security Patching
-^^^^^^^^^^^^^^^^^
+Kubernetes hardening
+^^^^^^^^^^^^^^^^^^^^
 
 **Risk: High**
 
-Due to the use of cloud services and distributed data centers, many SQuaRE services are Internet-accessible by design.
-This means there is a substantial Internet-facing attack surface, which increases the risk of vulnerabilities in software used for SQuaRE services.
-This is also the most likely attack vector for both opportunistic mass scanning attacks and more targeted attacks attempting to deface project web sites or to embarrass the project.
-
-Most (although not all) SQuaRE deployments are done via Kubernetes, which reduces the risk of local compromise of a service since the attacker will be confined to the container and the security of the container host is handled by the hosting facility (such as :abbr:`GCP (Google Cloud Platform)`).
-However, an attacker would still be able to intercept traffic, attack internal services and backend storage, and steal security credentials and sensitive data traveling through the compromised host.
-
-Therefore, all software that is part of a plausible attack path should be regularly patched for security vulnerabilities.
-The SQuaRE services in this analysis don't have large quantities of locally-developed code or complex, multi-layered dependencies that are difficult to upgrade.
-Therefore, since attack path analysis is difficult, costly, and error-prone, and since it is difficult to determine if a given upgrade has security implications, best practice is to routinely upgrade all software to the latest stable release.
-This is most important for compiled binaries in non-memory-safe languages that are part of the external attack surface (such as nginx or Python Docker images).
-It is less critical for underlying libraries in memory-safe languages, such as Python libraries.
-
-This analysis would not apply to the :abbr:`LSP (LSST Science Platform)` or to public APIs, for which regular upgrades are more disruptive and for which the security model is more complex.
-The differences will be addressed in a later security analysis specific to the LSP and public APIs.
-
-Software upgrades are currently done opportunistically or as a side effect of other operational work, which means that stable services that don't need new features may be left unpatched for extended periods of time.
-For instance, were there a new nginx security vulnerability, it currently seems unlikely that all Internet-facing nginx installations would be patched in a timely fashion without heroic efforts.
-
-Some SQuaRE services run on conventional VMs.
-Those VMs are similarly not being regularly patched for operating system vulnerabilities, and are probably more vulnerable to attacks than Kubernetes pods.
-
-5 out of 12 GCP Kubernetes clusters currently show pending node upgrades that have not been applied.
-
-Known, unpatched security vulnerabilities are the most common vector for successful compromises.
+Currently, SQuaRE has not done much to harden Kubernetes deployments outside of what upstream Helm charts and :abbr:`GKE (Google Kubernetes Engine)` does by default.
+This increases the risk that a compromised container will lead to a deeper infrastructure compromise.
+The SQuaRE Kubernetes clusters on GKE have their nodes and control plane accessible from the Internet, which is convenient for management but which significantly increases the attack surface.
+Traffic between pods is unrestricted, increasing the chances of lateral movement inside each cluster.
+The current cluster configurations do not follow the `Google recommended security practices <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__.
 
 Mitigations
 """""""""""
 
-- The Internet-facing attack surface almost always passes through an nginx ingress that terminates both TLS and HTTP, which avoids TLS and HTTP protocol attacks except those against nginx.
-- Cloud providers are used for many vulnerability-prone services such as DNS, reducing the attack surface.
-- Nearly all SQuaRE services use memory-safe languages (Go, Python, JavaScript), avoiding many common remote vulnerabilities.
+- All SQuaRE internal clusters (setting aside the Rubin Science Platform, which is not covered in this document) are hosted on GKE using Container-Optimized OS, so benefit from the cluster and node hardening that Google does by default.
+- All SQuaRE internal clusters are enrolled in release channels and are therefore automatically upgraded for Kubernetes security vulnerabilities.
 
 Recommendations
 """""""""""""""
 
-- Automate upgrade and redeployment of nginx ingress services on a regular schedule.
-  Both web servers and TLS libraries are common sources of vulnerabilities.
-- Automate system patching and reboots for all VMs.
-- Create a routine process for upgrading Jenkins shortly after each new upstream release.
-  Jenkins is notorious for significant security vulnerabilities, and the LSST Jenkins is an attractive target for injecting malicious code into software used by everyone in the project.
-- Create a routine process for upgrading Discourse on community.lsst.org.
-  This is one of the most attractive targets for an attacker wanting to deface a project web site, embarrass the project, or attempt XSS or other web site attacks.
-- Automate or create a routine process for applying pending Kubernetes node patches.
-- Create a routine process or, preferably, automation to upgrade and redeploy Internet-facing services to pick up all security patches.
-- Monitor and alert on failure to upgrade any of the above services within an acceptable window.
-- Clear all security issues in the GitHub security report, which reports vulnerabilities in dependencies declared in project GitHub repositories.
-  If this is kept clear so that it isn't dismissed as noise, it provides a valuable feed of new vulnerability information in libraries used by SQuaRE services.
-- Avoid pinning Docker images and other components in compiled, non-memory-safe languages to specific versions of third-party libraries and images when possible and instead use the latest version on each deploy.
-- Upgrade dependencies, rebuild, and redeploy all services, even those that are not Internet-facing, on a regular schedule to pick up security patches.
-  This is less important than Internet-facing services, but will close vulnerabilities that are indirectly exploitable, and also spreads operational load of upgrades out over time.
-  This schedule can be less aggressive than the one for Internet-facing services.
+Most of these recommendations come from the Google recommended hardening practices.
+
+- Create a Google Cloud Identity organization and restrict access to members of that organization.
+  This will enable access to the Google Security Command Center to monitor the security configuration of the Kubernetes clusters.
+  See :ref:`Google authentication <gap-google-auth>`.
+- Enable shielded GKE nodes with secure boot.
+- Use the ``cos_containerd`` image for all node pools.
+- Enable Workload Identity and ensure all services with Kubernetes credentials work properly with it.
+- Restrict cluster discovery permissions to only service accounts plus the Google Cloud Identity organization.
+- Restrict traffic between pods.
+  Istio is the most comprehensive solution here, but Kubernetes network policies may be sufficient.
+- Add admission controllers to enforce pod security policies.
+- Restrict network access to the control plane and nodes.
+  This is challenging because the recommended way to do this is to use a VPN to link the Kubernetes network with a corporate network, which poses various challenges.
+  However, exposing the cluster to the Internet is a significant increase in attack surface and therefore risk.
+- Research Kubernetes best practices for service configuration and adopt them for all SQuaRE internal services.
+- Add periodic scanning of SQuaRE Kubernetes clusters for missing security best practices.
+
+See `Google's hardening recommendations <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__ for more details.
+Also see :ref:`Service account permissions <gap-service-perms>`.
 
 .. _gap-logging-alerting:
 
-Logging and Alerting
+Logging and alerting
 ^^^^^^^^^^^^^^^^^^^^
 
 **Risk: High**
@@ -269,16 +256,76 @@ Recommendations
   One possible alerting strategy is to route unexpected events to a Slack bot that will query the person who supposedly took that action for confirmation that they indeed took that action, with two-factor authentication confirmation.
   If this is done only for discouraged paths for admin actions, such as direct Kubernetes commands instead of using Argo CD, it doubles as encouragement to use the standard configuration management system.
 
+.. _gap-patching:
+
+Security patching
+^^^^^^^^^^^^^^^^^
+
+**Risk: Medium**
+
+Due to the use of cloud services and distributed data centers, many SQuaRE services are Internet-accessible by design.
+This means there is a substantial Internet-facing attack surface, which increases the risk of vulnerabilities in software used for SQuaRE services.
+This is also the most likely attack vector for both opportunistic mass scanning attacks and more targeted attacks attempting to deface project web sites or to embarrass the project.
+
+Most (although not all) SQuaRE deployments are done via Kubernetes, which reduces the risk of local compromise of a service since the attacker will be confined to the container and the security of the container host is handled by the hosting facility (such as :abbr:`GCP (Google Cloud Platform)`).
+However, an attacker would still be able to intercept traffic, attack internal services and backend storage, and steal security credentials and sensitive data traveling through the compromised host.
+The attacker may also be able to escalate privileges within Kubernetes (see :ref:`Kubernetes hardening <gap-kubernetes>`).
+
+Therefore, all software that is part of a plausible attack path should be regularly patched for security vulnerabilities.
+The SQuaRE services in this analysis don't have large quantities of locally-developed code or complex, multi-layered dependencies that are difficult to upgrade.
+Therefore, since attack path analysis is difficult, costly, and error-prone, and since it is difficult to determine if a given upgrade has security implications, best practice is to routinely upgrade all software to the latest stable release.
+This is most important for compiled binaries in non-memory-safe languages that are part of the external attack surface (such as nginx or Python Docker images).
+It is less critical for underlying libraries in memory-safe languages, such as Python libraries.
+
+Some of our software upgrades, such as Helm chart changes for Roundtable and newer SQuaRE services based on `Safir <https://safir.lsst.io/>`__, are handled via automated pull requests.
+Others, such as most of the software running outside of Roundtable, are done opportunistically or as a side effect of other operational work, which means that stable services that don't need new features may be left unpatched for extended periods of time.
+Even for newer Safir-based services, we don't ensure that the service is redeployed periodically to pick up the dependency updates.
+
+Some SQuaRE services run on conventional VMs.
+Those VMs are similarly not being regularly patched for operating system vulnerabilities, and are probably more vulnerable to attacks than Kubernetes pods.
+
+This analysis would not apply to the :abbr:`RSP (Rubin Science Platform)` or to public APIs, for which regular upgrades are more disruptive and for which the security model is more complex.
+See `SQR-043`_ for more details.
+
+Known, unpatched security vulnerabilities are the most common vector for successful compromises.
+
+Mitigations
+"""""""""""
+
+- The combination of GitHub Dependabot, WhiteSource Renovate, and `neophile <https://neophile.lsst.io/>`__ are now creating automated PRs for the Roundtable Kubernetes cluster and newer Safir-based services.
+- The Internet-facing attack surface almost always passes through an nginx ingress that terminates both TLS and HTTP, which avoids TLS and HTTP protocol attacks except those against nginx.
+- Cloud providers are used for many vulnerability-prone services such as DNS, reducing the attack surface.
+- Nearly all SQuaRE services use memory-safe languages (Go, Python, JavaScript), avoiding many common remote vulnerabilities.
+- All SQuaRE clusters are enrolled in release channels and receive automated control plane and node upgrades.
+
+Recommendations
+"""""""""""""""
+
+- Consolidate other GKE clusters into Roundtable, which has configured automated PRs for Helm chart updates.
+- Automate system patching and reboots for all VMs.
+- Create a routine process for upgrading Jenkins shortly after each new upstream release.
+  Jenkins is notorious for significant security vulnerabilities, and the Rubin Jenkins is an attractive target for injecting malicious code into software used by everyone in the project.
+- Create a routine process for upgrading Discourse on community.lsst.org.
+  This is one of the most attractive targets for an attacker wanting to deface a project web site, embarrass the project, or attempt XSS or other web site attacks.
+- Identify all current SQuaRE-written services and enroll them in automated dependency pull requests.
+- Alert on Internet-facing services that have not been redeployed to pick up dependency updates in more than three months.
+- Clear all security issues in the GitHub security report, which reports vulnerabilities in dependencies declared in project GitHub repositories.
+  If this is kept clear so that it isn't dismissed as noise, it provides a valuable feed of new vulnerability information in libraries used by SQuaRE services.
+- Avoid pinning Docker images and other components in compiled, non-memory-safe languages to specific versions of third-party libraries and images when possible and instead use the latest version on each deploy.
+- Upgrade dependencies, rebuild, and redeploy all services, even those that are not Internet-facing, on a regular schedule to pick up security patches.
+  This is less important than Internet-facing services, but will close vulnerabilities that are indirectly exploitable, and also spreads operational load of upgrades out over time.
+  This schedule can be less aggressive than the one for Internet-facing services.
+
 .. _gap-scattered:
 
-Scattered Application Hosting
+Scattered application hosting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Risk: Medium**
 
 SQuaRE applications are scattered across multiple environments using multiple generations of deployment and configuration management strategies.
 For example, there are twelve :abbr:`GCP (Google Cloud Platform)` Kubernetes clusters, a GCP VM, two AWS Kubernetes clusters, eight AWS EC2 instances in two separate regions, and a critical project service (community.lsst.org) at Digital Ocean.
-This does not include services at the summit, the LDF, or in Tucson.
+This does not include services in Chile, the LDF, or in Tucson.
 
 Each additional environment means another environment to secure, patch, track, and monitor for intrusion or unexpected behavior.
 Proliferation of environments is therefore a security gap.
@@ -292,7 +339,7 @@ Recommendations
 
 .. _gap-service-perms:
 
-Service Account Permissions
+Service account permissions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Risk: Low**
@@ -327,7 +374,7 @@ Recommendations
 
 .. _gaps-web-security:
 
-Web Security
+Web security
 ------------
 
 .. _gap-csp:
@@ -361,7 +408,7 @@ Recommendations
 
 .. _gap-domain-takeover:
 
-Domain Takeover
+Domain takeover
 ^^^^^^^^^^^^^^^
 
 **Risk: Low**
@@ -378,7 +425,7 @@ Mitigations
 """""""""""
 
 - The attacker has to have some way of discovering the name of the DNS entry.
-- SQuaRE does not retire projects and thus release IP addresses at a very high rate.
+- The rate at which SQuaRE retires projects and thus releases IP addresses is low.
 - Domain takeover of project domains would lead, at most, to embarrassment and possibly phishing, not very high-value targets, so the most sophisticated attackers are unlikely to bother.
 
 Recommendations
@@ -394,7 +441,7 @@ Data Stores
 
 .. _gap-sql-public-ip:
 
-Public IPs for SQL Databases
+Public IPs for SQL databases
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Risk: Low**
@@ -443,7 +490,7 @@ There are several possible routes to compromise.
 
 .. _gap-laptop-compromise:
 
-Remote Laptop Compromise
+Remote laptop compromise
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Risk: Medium**
@@ -491,7 +538,7 @@ Instead, SQuaRE should focus on recommending caution in how staff use their work
 
 .. _gap-laptop-theft:
 
-Laptop Theft
+Laptop theft
 ^^^^^^^^^^^^
 
 **Risk: Low**
@@ -527,7 +574,7 @@ Authentication
 
 .. _gap-two-factor:
 
-Two-Factor Authentication
+Two-Factor authentication
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Risk: Medium**
@@ -538,8 +585,12 @@ Also, any password reuse allows an attacker to compromise one service and then u
 The best defense against password attacks is to require two-factor authentication for all services.
 Most critical cloud services support this, but it is not currently required by SQuaRE.
 
+This risk applies to both individual accounts and to team shared accounts.
+Some shared accounts have human-chosen, weak passwords rather than good randomly-generated ones.
+
 Even with two-factor authentication enabled, cloud services may be vulnerable to phishing attacks that steal both factors.
 The best available solution to this problem is to use WebAuthn for the second factor, which prevents phishing of that factor.
+Unfortunately, this is not supported by most services and cannot be easily shared between multiple people using 1Password.
 
 Mitigations
 """""""""""
@@ -549,6 +600,7 @@ Mitigations
 Recommendations
 """""""""""""""
 
+- Review all passwords for shared accounts and ensure they are randomly-generated by 1Password.
 - Enable required two-factor authentication for at least the ``lsst-sqre`` GitHub project, and preferably for the ``lsst`` and ``lsst-dm`` projects as well.
   This requires that all project members enable two-factor authentication in order to remain in the project.
 - Set an AWS IAM policy to disallow all service access unless two-factor authentication was used, and attach that policy to all IAM users.
@@ -556,14 +608,17 @@ Recommendations
 - Enable two-factor authentication for all Google accounts with GCP access.
   Also see :ref:`Google Authentication <gap-google-auth>`.
 - Enable two-factor authentication for all Docker Hub accounts with access to the ``lsstsqre`` project.
+  This will require moving all automated upload processes to Docker Hub tokens.
+- Enable two-factor authentication for the team RubyGems account.
+- Review all shared accounts in 1Password and enable two-factor authentication wherever possible.
 - Consider acquiring YubiKey or other WebAuthn devices for all SQuaRE team members and requiring their use for cloud services that support it (GitHub, AWS, and Google).
 
 .. _gap-google-auth:
 
-Google Authentication
+Google authentication
 ^^^^^^^^^^^^^^^^^^^^^
 
-**Risk: Low**
+**Risk: Medium**
 
 Several critical services are hosted in :abbr:`GCP (Google Cloud Platform)` in a SQuaRE project.
 The users in that project are a mix of personal and work Google accounts.
@@ -597,17 +652,17 @@ Recommendations
 
 .. _accepted-risks:
 
-Accepted Risks
+Accepted risks
 ==============
 
 The following possible security gaps do not appear to be significant enough to warrant investment of project resources given the threat model.
 
-Internet-Accessible Services
+Internet-accessible services
 ----------------------------
 
 Many SQuaRE services are Internet-accessible by design and do not require a VPN.
 This avoids the need to run a VPN infrastructure, makes it easier for SQuaRE staff to do their job from any location, and avoids network disruptions and other problems from VPN difficulties.
-Requiring VPN would allow SQuaRE to reduce the attack surface of SQuaRE infrastructure by restricting it to VPN IP addresses, but some services (such as those in support of the LSP) would still need to be Internet-accessible.
+Requiring VPN would allow SQuaRE to reduce the attack surface of SQuaRE infrastructure by restricting it to VPN IP addresses, but some services (such as those in support of the RSP) would still need to be Internet-accessible.
 VPN does not protect against compromised work computers, only against Internet mass scanning.
 
 Internet-accessible services greatly ease technical collaborations between systems at the summit, the LDF, the test stands, and various cloud services.
@@ -618,7 +673,7 @@ Security resources are better spent on ensuring those services are regularly pat
 
 This can be reconsidered once the project goes into operations.
 
-Supply-Chain Attacks
+Supply-chain attacks
 --------------------
 
 Attackers are increasingly attempting to compromise widely-shared library and resource repositories, such as PyPI, NPM, and Docker Hub.
@@ -649,7 +704,7 @@ Completely avoiding confidential communication in Slack is difficult.
 Slack's business model depends on the security of their workspaces, and they have more dedicated security resources than SQuaRE has available.
 SQuaRE staff should attempt to avoid sharing security credentials in Slack, but taking stronger precautions or avoiding Slack for privileged operations is not warranted given the threat model.
 
-Unencrypted Internal Connections
+Unencrypted internal connections
 --------------------------------
 
 SQuaRE practice is to terminate TLS at the nginx ingress and use unencrypted connections internal to Kubernetes clusters.
@@ -721,3 +776,17 @@ XSS
     One of the most common web vulnerabilities and attacks.
     Takes advantage of inadequate escaping or other security flaws in a web application to trick a user's web browser into running JavaScript or other code supplied by the attacker in the user's security context.
     Can be used to steal authentication credentials such as cookies, steal other confidential data, or phish the user.
+
+Changes
+=======
+
+2020-08-19
+----------
+
+- Add shared accounts to the analysis in :ref:`Two-factor authentication <gap-two-factor>`.
+- Add reviewing shared account passwords to the recommendations.
+- Add two-factor authentication for RubyGems and a review of other shared accounts to the recommendations.
+- Raise the risk of :ref:`Google authentication <gap-google-auth>` to medium due to our heavily reliance on Google services.
+- Add Google Cloud Identity to the top recommendations.
+- Update analysis, mitigations, and recommendations for the work that was done on :ref:`Security patching <gap-patching>`.
+- Add :ref:`Kubernetes hardening <gap-kubernetes>` and mark it as one of the highest risk areas.
