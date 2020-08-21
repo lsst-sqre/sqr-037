@@ -306,7 +306,7 @@ Known, unpatched security vulnerabilities are the most common vector for success
 Mitigations
 """""""""""
 
-- The combination of GitHub Dependabot, WhiteSource Renovate, and `neophile <https://neophile.lsst.io/>`__ are now creating automated PRs for the Roundtable Kubernetes cluster and newer Safir-based services.
+- The combination of GitHub Dependabot, WhiteSource Renovate, and `neophile <https://neophile.lsst.io/>`__ create automated PRs for updates to the Roundtable Kubernetes cluster and newer Safir-based services.
 - The Internet-facing attack surface almost always passes through an nginx ingress that terminates both TLS and HTTP, which avoids TLS and HTTP protocol attacks except those against nginx.
 - Cloud providers are used for many vulnerability-prone services such as DNS, reducing the attack surface.
 - Nearly all SQuaRE services use memory-safe languages (Go, Python, JavaScript), avoiding many common remote vulnerabilities.
