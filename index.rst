@@ -36,7 +36,7 @@ The top recommendations for improving SQuaRE's security posture are:
 
 - Create a Google Cloud Identity domain with mandatory two-factor authentication for access to SQuaRE services running at Google
 - Apply all of the Kubernetes cluster hardening measures recommended by Google
-- Research and apply Kubernetes best practices for service configuration
+- Add a ``PodSecurityPolicy`` and hardening configuration to SQuaRE services
 - Consolidate application hosting environments
 - Ingest security logs from cloud hosting providers
 - Define normal administrative activity and begin alerting on unexpected privileged actions
@@ -299,7 +299,7 @@ Some SQuaRE services run on conventional VMs.
 Those VMs are similarly not being regularly patched for operating system vulnerabilities, and are probably more vulnerable to attacks than Kubernetes pods.
 
 This analysis would not apply to the :abbr:`RSP (Rubin Science Platform)` or to public APIs, for which regular upgrades are more disruptive and for which the security model is more complex.
-See `SQR-043`_ for more details.
+See `SQR-041`_ for more details.
 
 Known, unpatched security vulnerabilities are the most common vector for successful compromises.
 
