@@ -197,6 +197,9 @@ The SQuaRE Kubernetes clusters on GKE have their nodes and control plane accessi
 Traffic between pods is unrestricted, increasing the chances of lateral movement inside each cluster.
 The current cluster configurations do not follow the `Google recommended security practices <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__.
 
+The pod configurations maintained by SQuaRE do not have security hardening settings and are not scanned for Kubernetes best practices.
+Pods may therefore be running with more privileges than they need.
+
 Mitigations
 """""""""""
 
@@ -217,11 +220,19 @@ Most of these recommendations come from the Google recommended hardening practic
 - Restrict cluster discovery permissions to only service accounts plus the Google Cloud Identity organization.
 - Restrict traffic between pods.
   Istio is the most comprehensive solution here, but Kubernetes network policies may be sufficient.
-- Add admission controllers to enforce pod security policies.
 - Restrict network access to the control plane and nodes.
   This is challenging because the recommended way to do this is to use a VPN to link the Kubernetes network with a corporate network, which poses various challenges.
   However, exposing the cluster to the Internet is a significant increase in attack surface and therefore risk.
-- Research Kubernetes best practices for service configuration and adopt them for all SQuaRE internal services.
+- Disable legacy ABAC access control on all clusters.
+  Some older clusters still have this enabled.
+- Add a cluster-wide pod security policy that enables the generally-desirable hardening options, and enable the Pod Security Policy admission controller.
+  This should disable privileged containers, use a read-only root file system, disable privilege escalation, and disable running containers as root.
+  Also see the `Kubernetes recommended restricted policy <https://kubernetes.io/docs/concepts/security/pod-security-standards/>`__.
+- Enable the GKE sandbox for services not run by SQuaRE and that don't require high performance (such as Slack bots).
+- Set ``automountServiceAccountToken`` to ``false`` for all service accounts or pods by default, leaving it enabled only for those pods that need to talk to Kubernetes.
+- Separate applications into their own namespaces in the Roundtable cluster.
+  This requires fixing how they talk to Kafka, which is currently forcing them all into the ``events`` namespace.
+- Specify resource limits for all pods.
 - Add periodic scanning of SQuaRE Kubernetes clusters for missing security best practices.
 
 See `Google's hardening recommendations <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__ for more details.
@@ -779,6 +790,12 @@ XSS
 
 Changes
 =======
+
+2020-08-20
+----------
+
+- Add Kubernetes pod hardening recommendations to :ref:`Kubernetes hardening <gap-kubernetes>`.
+- Add disabling ABAC legacy access control for Kubernetes clusters.
 
 2020-08-19
 ----------
