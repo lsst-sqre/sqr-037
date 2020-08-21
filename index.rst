@@ -36,7 +36,7 @@ The top recommendations for improving SQuaRE's security posture are:
 
 - Create a Google Cloud Identity domain with mandatory two-factor authentication for access to SQuaRE services running at Google
 - Apply all of the Kubernetes cluster hardening measures recommended by Google
-- Research and apply Kubernetes best practices for service configuration
+- Add a ``PodSecurityPolicy`` and hardening configuration to SQuaRE services
 - Consolidate application hosting environments
 - Ingest security logs from cloud hosting providers
 - Define normal administrative activity and begin alerting on unexpected privileged actions
@@ -197,6 +197,9 @@ The SQuaRE Kubernetes clusters on GKE have their nodes and control plane accessi
 Traffic between pods is unrestricted, increasing the chances of lateral movement inside each cluster.
 The current cluster configurations do not follow the `Google recommended security practices <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__.
 
+The pod configurations maintained by SQuaRE do not have security hardening settings and are not scanned for Kubernetes best practices.
+Pods may therefore be running with more privileges than they need.
+
 Mitigations
 """""""""""
 
@@ -213,15 +216,26 @@ Most of these recommendations come from the Google recommended hardening practic
   See :ref:`Google authentication <gap-google-auth>`.
 - Enable shielded GKE nodes with secure boot.
 - Use the ``cos_containerd`` image for all node pools.
-- Enable Workload Identity and ensure all services with Kubernetes credentials work properly with it.
+- Enable Workload Identity and ensure all services that need access to Google Cloud services work properly with it.
+  This will also block unwanted access to Google Compute Engine metadata services.
 - Restrict cluster discovery permissions to only service accounts plus the Google Cloud Identity organization.
 - Restrict traffic between pods.
   Istio is the most comprehensive solution here, but Kubernetes network policies may be sufficient.
-- Add admission controllers to enforce pod security policies.
+  Kubernetes network policy support has to be enabled at the cluster level.
 - Restrict network access to the control plane and nodes.
   This is challenging because the recommended way to do this is to use a VPN to link the Kubernetes network with a corporate network, which poses various challenges.
   However, exposing the cluster to the Internet is a significant increase in attack surface and therefore risk.
-- Research Kubernetes best practices for service configuration and adopt them for all SQuaRE internal services.
+  The easiest approach may be a bastion hosted in :abbr:`GCE (Google Compute Engine)`.
+- Disable legacy ABAC access control on all clusters.
+  Some older clusters still have this enabled.
+- Add a cluster-wide pod security policy that enables the generally-desirable hardening options, and enable the Pod Security Policy admission controller.
+  This should disable privileged containers, use a read-only root file system, disable privilege escalation, disable running containers as root, and restrict capabilities.
+  See the `Kubernetes recommended restricted policy <https://kubernetes.io/docs/concepts/security/pod-security-standards/>`__.
+- Enable the GKE sandbox for services not run by SQuaRE and that don't require high performance (such as Slack bots).
+- Set ``automountServiceAccountToken`` to ``false`` for all service accounts or pods by default, leaving it enabled only for those pods that need to talk to Kubernetes.
+- Separate applications into their own namespaces in the Roundtable cluster.
+  This requires fixing how they talk to Kafka, which is currently forcing them all into the ``events`` namespace.
+- Specify resource limits for all pods.
 - Add periodic scanning of SQuaRE Kubernetes clusters for missing security best practices.
 
 See `Google's hardening recommendations <https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster>`__ for more details.
@@ -285,14 +299,14 @@ Some SQuaRE services run on conventional VMs.
 Those VMs are similarly not being regularly patched for operating system vulnerabilities, and are probably more vulnerable to attacks than Kubernetes pods.
 
 This analysis would not apply to the :abbr:`RSP (Rubin Science Platform)` or to public APIs, for which regular upgrades are more disruptive and for which the security model is more complex.
-See `SQR-043`_ for more details.
+See `SQR-041`_ for more details.
 
 Known, unpatched security vulnerabilities are the most common vector for successful compromises.
 
 Mitigations
 """""""""""
 
-- The combination of GitHub Dependabot, WhiteSource Renovate, and `neophile <https://neophile.lsst.io/>`__ are now creating automated PRs for the Roundtable Kubernetes cluster and newer Safir-based services.
+- The combination of GitHub Dependabot, WhiteSource Renovate, and `neophile <https://neophile.lsst.io/>`__ create automated PRs for updates to the Roundtable Kubernetes cluster and newer Safir-based services.
 - The Internet-facing attack surface almost always passes through an nginx ingress that terminates both TLS and HTTP, which avoids TLS and HTTP protocol attacks except those against nginx.
 - Cloud providers are used for many vulnerability-prone services such as DNS, reducing the attack surface.
 - Nearly all SQuaRE services use memory-safe languages (Go, Python, JavaScript), avoiding many common remote vulnerabilities.
@@ -779,6 +793,14 @@ XSS
 
 Changes
 =======
+
+2020-08-21
+----------
+
+- Add Kubernetes pod hardening recommendations to :ref:`Kubernetes hardening <gap-kubernetes>`.
+- Add disabling ABAC legacy access control for Kubernetes clusters.
+- Mention enabling Kubernetes network policy support at the cluster level.
+- Suggest use of a bastion host to allow restricting access to the cluster control plane and nodes.
 
 2020-08-19
 ----------
